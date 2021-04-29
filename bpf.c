@@ -24,13 +24,15 @@ struct xevent {
 
 	__u32 len2;
 	__u32  pad4;
+
+	char name[32];
 };
 
 struct bpf_map_def SEC("maps") channel = {
 	.type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
 	.key_size = 4,
 	.value_size = 4,
-	.max_entries = 8,
+	.max_entries = NCPUS,
 };
 
 static int (*probe_read)(void *dst, int size, void *src) = (void *)BPF_FUNC_probe_read;
@@ -81,6 +83,14 @@ int func (struct tp_ctx *ctx) {
 	union xpkt_type t;
 	probe_read(&t.val, sizeof(__u8), &skb_ptr->__pkt_type_offset);
 	ev.ip_summed = t.fields.ip_summed;
+
+	__u32 slen;
+	probe_read(&slen, sizeof(slen), &ctx->name);
+	if (slen > 31) {
+		slen = 31;
+	}
+	probe_read(&ev.name, slen, sizeof(__u32) + (char *)ctx->name);
+
 	perf_event_output(ctx, &channel, get_smp_processor_id(), &ev, sizeof(ev));
 	return 0;
 }

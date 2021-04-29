@@ -3,11 +3,12 @@ CLANG ?= clang
 CLANG_FLAGS ?= -O2 -emit-llvm
 LLC ?= llc
 LLC_FLAGS ?= -march=bpf -filetype=obj
+NCPUS ?= $(shell nproc)
 
 all: bpf.o help
 
 bpf.o: bpf.c vmlinux.h
-	$(CLANG) $(CLANG_FLAGS) -c bpf.c -o bpf.ll
+	$(CLANG) $(CLANG_FLAGS) -DNCPUS=$(NCPUS) -c bpf.c -o bpf.ll
 	$(LLC) $(LLC_FLAGS) bpf.ll -o bpf.o
 
 .PHONY: help
